@@ -1,10 +1,15 @@
 import sys
 from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QMenu, QAction, QPushButton, QSpinBox, QComboBox
 from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QColor, QPolygon
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThread
+from config import Config
+from src.train_worker import TrainWorker
+import src.util as util
+from src.networks import make_nets
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.path import Path
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -12,7 +17,7 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('Net Trainer 2 Electric Boogaloo')
+        self.setWindowTitle('Segmentatron 9000')
         self.painterWidget = Painter(self)
         self.setCentralWidget(self.painterWidget)
         self.setGeometry(30,30,self.painterWidget.image.width(),self.painterWidget.image.height())
@@ -28,7 +33,7 @@ class MainWindow(QMainWindow):
     
     def save(self):
         print('....saving')
-        filePath = 'app/label.jpg'
+        filePath = 'data/label.jpg'
         label_map = np.argmax(self.painterWidget.labels, axis=0)
         plt.imsave(filePath, label_map, cmap='gray')
 
@@ -36,18 +41,16 @@ class Painter(QWidget):
     def __init__(self, parent):
         super(Painter, self).__init__(parent)
         self.parent = parent
-        
-        # Set up canvas
-        # self.label = QLabel(self)
-        self.image = QPixmap('datasets/Figure_1.png')
-        # self.label.setPixmap(self.image)
-        # self.resize(self.image.width(), self.image.height())
-
+        self.datapath = 'data/Example_ppp.png'
+        self.image = QPixmap(self.datapath)
+    
         self.shape = 'poly'
         self.polypts = []
         self.old_polys = []
         self.begin = None
         self.end = None
+
+        self.training = False
 
         # Select no. of classes in image
         self.nClassesSpinBox = QSpinBox()
@@ -80,7 +83,20 @@ class Painter(QWidget):
         drawStatus = parent.addToolBar('&drawStatus')
         drawStatus.addWidget(self.drawStatusLabel)
 
-        self.labels = np.zeros((self.n_classes+1,self.image.height(), self.image.width()))
+        # train button
+        self.trainButton = QPushButton()
+        self.trainButton.setFocusPolicy(Qt.NoFocus)
+        self.trainButton.setText('Train')
+        self.trainButton.clicked.connect(self.onTrainClick)
+        train = parent.addToolBar('&trainButton')
+        train.addWidget(self.trainButton)
+
+        self.stepLabel = QLabel('step label')
+        self.stepLabel.setFocusPolicy(Qt.NoFocus)
+        label = parent.addToolBar('&stepLabel')
+        label.addWidget(self.stepLabel)
+
+        self.labels = np.zeros((self.n_classes,self.image.height(), self.image.width()))
 
 
     def paintEvent(self, event):
@@ -152,7 +168,7 @@ class Painter(QWidget):
         if self.n_classes > len(self.old_polys):
             for i in range(len(self.old_polys),self.n_classes):
                 self.old_polys[i+1] = []
-            self.labels.resize(self.n_classes+1,self.image.height(), self.image.width())
+            self.labels.resize(self.n_classes,self.image.height(), self.image.width())
 
     def classChanged(self):
         self.currentClass = int(self.classComboBox.currentText())
@@ -166,11 +182,48 @@ class Painter(QWidget):
         grid = np.vstack((x,y)).T
         p = Path(new_poly)
         contained_pts = p.contains_points(grid)
-        self.labels[self.currentClass] += contained_pts.reshape(h, w)
-        print(self.labels[self.currentClass])
+        self.labels[self.currentClass-1] += contained_pts.reshape(h, w)
+        # print(self.labels[self.currentClass])
+
+    def onTrainClick(self):
+        self.training = True
+
+        tag = 'iter-run'
+        c = Config(tag)
+        c.data_path = self.datapath
+        c.n_phases = self.n_classes
+        c.f[-1] = c.n_phases
+        overwrite = False
+        net = make_nets(c, overwrite, self.training)
+
+        # 1: Create worker class (TrainWorker)
+        # 2: Create QThread object
+        self.thread = QThread()
+        # 3: Create worker object
+        self.worker = TrainWorker(c, self.labels, net, overwrite)
+        # 4: Move worker to thread
+        self.worker.moveToThread(self.thread)
+        # 5: Connect Signals and Slots
+        self.thread.started.connect(self.worker.train)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.progress.connect(self.progress)
+        # 6: Start thread
+        self.thread.start()
+
+    def stop_train(self):
+        self.training = False
+
+    def progress(self, epoch, running_loss):
+        self.stepLabel.setText(f'epoch: {epoch}, running loss: {running_loss:.4f}')
 
     
-
-app = QApplication(sys.argv)
-window = MainWindow()
-app.exec_()
+    
+def main():
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    app.exec_()
+    
+if __name__ == '__main__':
+    main()

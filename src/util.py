@@ -18,6 +18,8 @@ from torch import nn
 import tifffile
 from skimage.util import random_noise
 from skimage import io, filters
+from PIL import Image
+from matplotlib import cm
 
 # check for existing models and folders
 def check_existence(tag):
@@ -207,35 +209,6 @@ def post_process(img):
 
     return img * 255
 
-def generate(c, netG):
-    """Generate an instance from generator, save to .tif
-
-    :param c: Config object class
-    :type c: Config
-    :param netG: Generator instance
-    :type netG: Generator
-    :return: Post-processed generated instance
-    :rtype: torch.Tensor
-    """
-    tag, ngpu, nz, lf, pth = c.tag, c.ngpu, c.nz, c.lf, c.path
-
-
-    out_pth = f"runs/{tag}/out.tif"
-    if torch.cuda.device_count() > 1 and c.ngpu > 1:
-        print("Using", torch.cuda.device_count(), "GPUs!")
-    device = torch.device("cuda:0" if(
-            torch.cuda.is_available() and ngpu > 0) else "cpu")
-    if (ngpu > 1):
-        netG = nn.DataParallel(netG, list(range(ngpu))).to(device)
-    netG.load_state_dict(torch.load(f"{pth}/Gen.pt"))
-    netG.eval()
-    noise = torch.randn(1, nz, lf, lf)
-    raw = netG(noise)
-    gb = post_process(raw)
-    tif = np.array(gb[0], dtype=np.uint8)
-    tifffile.imwrite(out_pth, tif, imagej=True)
-    return tif
-
 def progress(i, iters, n, num_epochs, timed):
     """[summary]
 
@@ -315,18 +288,33 @@ def one_hot_encode(mask, n_classes=3):
     one_hot = one_hot[1:]   # remove '0' (unlabelled) layer
     return one_hot
 
-def preprocess(data_path):
-    """
-    :data_path: path to data in tif format (string)
-    """
-    imgs = io.imread(data_path)
+# def preprocess(data_path):
+#     """
+#     :data_path: path to data in tif format (string)
+#     """
+#     imgs = io.imread(data_path)
+#     inputs = []
+#     targets = []
+#     for img in imgs:
+#         inputs.append(distort(img))
+#         cropped = crop_labels(img)
+#         targets.append(one_hot_encode(cropped))
+#     dataset = NMCDataset(inputs=inputs, targets=targets, transform=None)
+#     return dataset
+
+def preprocess(data_path, labels):
+    # function returns dataset to be trained
     inputs = []
     targets = []
-    for img in imgs:
-        inputs.append(distort(img))
-        cropped = crop_labels(img)
-        targets.append(one_hot_encode(cropped))
-    dataset = NMCDataset(inputs=inputs, targets=targets, transform=None)
+    imgs = io.imread(data_path, as_gray=True)
+    if data_path[-3:] =='tif':
+        for img in imgs:
+            inputs.append(img)
+    else:
+        img = io.imread(data_path, as_gray = True)
+        inputs = [np.expand_dims(img, axis=0)]
+    targets = [labels]
+    dataset = NMCDataset(inputs = inputs, targets = targets, transform = None)
     return dataset
 
 def visualise(output, x, y):
@@ -362,6 +350,27 @@ def visualise(output, x, y):
             fig.colorbar(im, cax=cax)
         # plt.show()
     return fig
+
+def wandb_figs(output, x, y):
+    output = output.numpy()
+    argmax = 1 + np.argmax(output, axis=1)[0]
+    argmax_norm = argmax/np.amax(argmax)
+    img_argmax = Image.fromarray(np.uint8(cm.inferno(argmax_norm)*255))
+
+    softmax_max = np.amax(output, axis=1)[0]
+    img_softmax = Image.fromarray(np.uint8(cm.inferno(softmax_max)*255))
+
+    layer = np.zeros((1, output.shape[2], output.shape[3]))
+    labels = np.argmax(np.concatenate((layer, y.numpy()[0]), axis=0), axis=0)
+    labels_norm = labels/np.amax(labels)
+    img_labels = Image.fromarray(np.uint8(cm.inferno(labels_norm)*255))
+
+    return img_argmax, img_softmax, img_labels
+    
+
+    
+
+
 
 
 class NMCDataset(data.Dataset):

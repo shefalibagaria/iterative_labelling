@@ -7,7 +7,7 @@ class Config():
     def __init__(self, tag):
         self.tag = tag
         self.path = f'runs/{self.tag}'
-        self.data_path = 'data/3ph_0/NMC_90wt_0bar.tif' # what format does the data need to be in
+        self.data_path = ''
         self.net_type = 'cnn'
         self.l = 64     # what is l
         self.n_channels = 1
@@ -16,7 +16,7 @@ class Config():
         self.batch_size = 2
         self.beta1 = 0.9       # what are beta 1 and 2 
         self.beta2 = 0.999
-        self.num_epochs = 500
+        self.num_epochs = 4000
         self.iters = 1
         self.lrg = 0.0001       # what is lrg
         self.lr = 0.001
@@ -63,6 +63,6 @@ class Config():
         return self.k, self.s, self.f, self.p
     
     def get_train_params(self):
-        return self.l, self.batch_size, self.beta1, self.beta2, self.num_epochs, self.iters, self.lrg, self.lr, self.Lambda, self.critic_iters, self.lz, self.nz
+        return self.l, self.batch_size, self.beta1, self.beta2, self.num_epochs, self. s, self.lrg, self.lr, self.Lambda, self.critic_iters, self.lz, self.nz
 
 

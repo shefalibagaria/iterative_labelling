@@ -1,0 +1,10 @@
+
+.env
+*.pyc
+sandbox.py
+*.log
+*.wandb
+*.yaml
+*.png
+wandb/
+*.pyc
