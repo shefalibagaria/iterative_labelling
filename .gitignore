@@ -5,5 +5,4 @@ sandbox.py
 *.log
 *.wandb
 *.yaml
-*.png
 wandb/
