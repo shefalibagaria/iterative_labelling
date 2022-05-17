@@ -7,4 +7,3 @@ sandbox.py
 *.yaml
 *.png
 wandb/
-*.pyc

@@ -33,15 +33,25 @@ class MainWindow(QMainWindow):
     
     def save(self):
         print('....saving')
-        filePath = 'data/label.jpg'
-        label_map = np.argmax(self.painterWidget.labels, axis=0)
-        plt.imsave(filePath, label_map, cmap='gray')
+        filePath = 'data/label.png'
+        label_map = self.painterWidget.labels.transpose((1,2,0))
+        padding = np.zeros((self.painterWidget.image.height(),self.painterWidget.image.width(), 4-label_map.shape[2]))
+        labels = np.concatenate((label_map, padding), axis = 2)
+        alpha = 0.5
+        # labels[:,:,3] = alpha*np.amax(labels, axis=2)
+        labels = 0.5*labels
+        input_img = plt.imread(self.painterWidget.datapath)
+        y = np.ones(input_img.shape)
+        mask = np.where(labels==0.5, labels, y)
+        final_img = input_img*mask
+        
+        plt.imsave(filePath, final_img)
 
 class Painter(QWidget):
     def __init__(self, parent):
         super(Painter, self).__init__(parent)
         self.parent = parent
-        self.datapath = 'data/Example_ppp.png'
+        self.datapath = 'data/nmc_cathode.png'
         self.image = QPixmap(self.datapath)
     
         self.shape = 'poly'
@@ -83,6 +93,10 @@ class Painter(QWidget):
         drawStatus = parent.addToolBar('&drawStatus')
         drawStatus.addWidget(self.drawStatusLabel)
 
+        # stop train
+        self.stopTrain = QPushButton('Stop', self)
+        self.stopTrain.hide()
+
         # train button
         self.trainButton = QPushButton()
         self.trainButton.setFocusPolicy(Qt.NoFocus)
@@ -96,7 +110,7 @@ class Painter(QWidget):
         label = parent.addToolBar('&stepLabel')
         label.addWidget(self.stepLabel)
 
-        self.labels = np.zeros((self.n_classes,self.image.height(), self.image.width()))
+        self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))
 
 
     def paintEvent(self, event):
@@ -187,6 +201,8 @@ class Painter(QWidget):
 
     def onTrainClick(self):
         self.training = True
+        self.trainButton.hide()
+        self.stopTrain.show()
 
         tag = 'iter-run'
         c = Config(tag)
@@ -205,8 +221,10 @@ class Painter(QWidget):
         self.worker.moveToThread(self.thread)
         # 5: Connect Signals and Slots
         self.thread.started.connect(self.worker.train)
+        self.stopTrain.clicked.connect(lambda: self.worker.stop())
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.finished.connect(self.stop_train)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.progress.connect(self.progress)
         # 6: Start thread
@@ -214,6 +232,8 @@ class Painter(QWidget):
 
     def stop_train(self):
         self.training = False
+        self.stopTrain.hide()
+        self.trainButton.show()
 
     def progress(self, epoch, running_loss):
         self.stepLabel.setText(f'epoch: {epoch}, running loss: {running_loss:.4f}')

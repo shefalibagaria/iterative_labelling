@@ -16,7 +16,7 @@ class Config():
         self.batch_size = 2
         self.beta1 = 0.9       # what are beta 1 and 2 
         self.beta2 = 0.999
-        self.num_epochs = 4000
+        self.num_epochs = 5000
         self.iters = 1
         self.lrg = 0.0001       # what is lrg
         self.lr = 0.001
