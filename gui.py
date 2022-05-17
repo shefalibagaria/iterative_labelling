@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QMenu, QAction, QPushButton, QSpinBox, QComboBox
 from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QColor, QPolygon
 from PyQt5.QtCore import Qt, QThread
+from torch import true_divide
 from config import Config
 from src.train_worker import TrainWorker
 import src.util as util
@@ -61,6 +62,8 @@ class Painter(QWidget):
         self.end = None
 
         self.training = False
+
+        self.predict_view = True
 
         # Select no. of classes in image
         self.nClassesSpinBox = QSpinBox()
@@ -197,7 +200,6 @@ class Painter(QWidget):
         p = Path(new_poly)
         contained_pts = p.contains_points(grid)
         self.labels[self.currentClass-1] += contained_pts.reshape(h, w)
-        # print(self.labels[self.currentClass])
 
     def onTrainClick(self):
         self.training = True
@@ -237,6 +239,10 @@ class Painter(QWidget):
 
     def progress(self, epoch, running_loss):
         self.stepLabel.setText(f'epoch: {epoch}, running loss: {running_loss:.4f}')
+        if self.predict_view:
+            self.image = QPixmap('data/temp/prediction_blend.png')
+            # self.update()
+
 
     
     

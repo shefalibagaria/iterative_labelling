@@ -366,6 +366,32 @@ def wandb_figs(output, x, y):
     img_labels = Image.fromarray(np.uint8(cm.inferno(labels_norm)*255))
 
     return img_argmax, img_softmax, img_labels
+
+def gui_figs(output, x, y):
+    output = output.numpy()
+    x = x.numpy()
+    # if output.shape[1]<3:
+    #     padding = np.zeros((3-output.shape[1], output.shape[2], output.shape[3]))
+    #     output_rgb = np.concatenate((output[0], padding), axis = 0)
+    # output_rgb = np.transpose(output_rgb, (1,2,0))
+    # a = 0.3
+    # alpha_layer = a*np.ones((output_rgb.shape[0], output_rgb.shape[1], 1))
+    # predict_arr = np.concatenate((output_rgb, alpha_layer), axis=2)
+    n_colours = 9
+
+    argmax = np.argmax(output, axis=1)[0]
+    argmax_norm = 1/18+(argmax/n_colours)
+    im_argmax = Image.fromarray(np.uint8(cm.Set1(argmax_norm)*255), mode='RGBA')
+    im_argmax.save('data/temp/prediction.png')
+    im_argmax.putalpha(100)
+
+    inputs = np.transpose(x[0], (1,2,0))
+    im_inputs = Image.fromarray(inputs*255, mode='RGBA')
+    im_inputs.putalpha(255)
+
+    blended = Image.alpha_composite(im_inputs, im_argmax)
+    blended.save('data/temp/prediction_blend.png')
+    return
     
 
     

@@ -67,45 +67,48 @@ class TrainWorker(QObject):
         if ('cuda' in str(device)) and (ngpu > 1):
             net = nn.DataParallel(net, list(range(ngpu))).to(device)
 
-        if not offline:
-            wandb_init(tag, offline)
-            wandb.watch(net, log='all', log_freq = 100)
+        # if not offline:
+        #     wandb_init(tag, offline)
+        #     wandb.watch(net, log='all', log_freq = 100)
 
-        while not self.quit_flag:
-            for epoch in range(num_epochs):
-                times = []
-                running_loss = []
-                for i, d in enumerate(dataloader):
-                    if ('cuda' in str(device)) and (ngpu > 1):
-                        start_overall = torch.cuda.Event(enable_timing=True)
-                        end_overall = torch.cuda.Event(enable_timing=True)
-                        start_overall.record()
-                    else:
-                        start_overall = time.time()
-                    x, y = d
-                    # print('x shape: ', x.shape, 'y shape: ', y.shape)
-                    net.zero_grad()
-                    outputs = net(x.to(device))
-                    # print('outputs shape: ', outputs.shape)
-                    # loss = mse_loss(outputs[y != 0].view(-1, 1, 200, 200), y.to(device)[y != 0].view(-1, 1, 200, 200))
-                    loss = mse_loss(outputs[y != 0], y.to(device)[y != 0])
-                    loss.backward()
-                    optimizer.step()
-                    running_loss.append(loss.item())
+        for epoch in range(num_epochs):
+            if self.quit_flag:
+                break
+            times = []
+            running_loss = []
+            for i, d in enumerate(dataloader):
+                if ('cuda' in str(device)) and (ngpu > 1):
+                    start_overall = torch.cuda.Event(enable_timing=True)
+                    end_overall = torch.cuda.Event(enable_timing=True)
+                    start_overall.record()
+                else:
+                    start_overall = time.time()
+                x, y = d
+                # print('x shape: ', x.shape, 'y shape: ', y.shape)
+                net.zero_grad()
+                outputs = net(x.to(device))
+                # print('outputs shape: ', outputs.shape)
+                # loss = mse_loss(outputs[y != 0].view(-1, 1, 200, 200), y.to(device)[y != 0].view(-1, 1, 200, 200))
+                loss = mse_loss(outputs[y != 0], y.to(device)[y != 0])
+                loss.backward()
+                optimizer.step()
+                running_loss.append(loss.item())
 
-                if epoch % 10 == 0:
-                    argmax, softmax, labels = wandb_figs(outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
+            if epoch % 10 == 0:
+                argmax, softmax, labels = wandb_figs(outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
+                gui_figs(outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
 
-                    # wandb stuff - remove for final version/keep if we want it as an option
-                    wandb.log({'Loss': np.mean(running_loss)})
-                    wandb.log({'Max Softmax Value': torch.max(outputs.detach().cpu()).detach().numpy()})
-                    wandb.log({'Softmax Mean': np.mean(np.amax(outputs[0].detach().cpu().detach().numpy(), axis=0))})
-                    wandb.log({'Labels': wandb.Image(labels)})
-                    wandb.log({'Prediction': wandb.Image(argmax)})
-                    wandb.log({'Confidence map': wandb.Image(softmax)})
-                    # # plt.close()
-                    self.progress.emit(epoch, np.mean(running_loss))
-                    print('epoch: {}, running loss: {}'.format(epoch+1, np.mean(running_loss)))
+
+                # wandb stuff - remove for final version/keep if we want it as an option
+                # wandb.log({'Loss': np.mean(running_loss)})
+                # wandb.log({'Max Softmax Value': torch.max(outputs.detach().cpu()).detach().numpy()})
+                # wandb.log({'Softmax Mean': np.mean(np.amax(outputs[0].detach().cpu().detach().numpy(), axis=0))})
+                # wandb.log({'Labels': wandb.Image(labels)})
+                # wandb.log({'Prediction': wandb.Image(argmax)})
+                # wandb.log({'Confidence map': wandb.Image(softmax)})
+
+                self.progress.emit(epoch, np.mean(running_loss))
+                print('epoch: {}, running loss: {}'.format(epoch+1, np.mean(running_loss)))
 
         self.finished.emit()           
         print("TRAINING FINISHED")
