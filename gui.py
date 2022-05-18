@@ -63,8 +63,6 @@ class Painter(QWidget):
 
         self.training = False
 
-        self.predict_view = True
-
         # Select no. of classes in image
         self.nClassesSpinBox = QSpinBox()
         self.nClassesSpinBox.setFocusPolicy(Qt.NoFocus)
@@ -107,6 +105,16 @@ class Painter(QWidget):
         self.trainButton.clicked.connect(self.onTrainClick)
         train = parent.addToolBar('&trainButton')
         train.addWidget(self.trainButton)
+
+        # Select view
+        self.displayComboBox = QComboBox()
+        self.displayComboBox.setFocusPolicy(Qt.NoFocus)
+        self.displayComboBox.addItems(['Input','Prediction','Confidence'])
+        self.displayComboBox.activated.connect(self.displayChanged)
+        disp_select = parent.addToolBar('&displaySelect')
+        disp_select.addWidget(self.displayComboBox)
+
+        self.display = 'Input'
 
         self.stepLabel = QLabel('step label')
         self.stepLabel.setFocusPolicy(Qt.NoFocus)
@@ -207,11 +215,13 @@ class Painter(QWidget):
         self.stopTrain.show()
 
         tag = 'iter-run'
+
+        overwrite = False
+        util.initialise_folders(tag, overwrite)
         c = Config(tag)
         c.data_path = self.datapath
         c.n_phases = self.n_classes
         c.f[-1] = c.n_phases
-        overwrite = False
         net = make_nets(c, overwrite, self.training)
 
         # 1: Create worker class (TrainWorker)
@@ -239,9 +249,18 @@ class Painter(QWidget):
 
     def progress(self, epoch, running_loss):
         self.stepLabel.setText(f'epoch: {epoch}, running loss: {running_loss:.4f}')
-        if self.predict_view:
+        self.displayChanged()
+    
+    def displayChanged(self):
+        self.display = self.displayComboBox.currentText()
+        if self.display == 'Input':
+            self.image = QPixmap(self.datapath)
+        if self.display == 'Prediction':
             self.image = QPixmap('data/temp/prediction_blend.png')
-            # self.update()
+        if self.display == 'Confidence':
+            self.image = QPixmap('data/temp/confidence_blend.png')
+    
+
 
 
     

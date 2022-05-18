@@ -370,27 +370,33 @@ def wandb_figs(output, x, y):
 def gui_figs(output, x, y):
     output = output.numpy()
     x = x.numpy()
-    # if output.shape[1]<3:
-    #     padding = np.zeros((3-output.shape[1], output.shape[2], output.shape[3]))
-    #     output_rgb = np.concatenate((output[0], padding), axis = 0)
-    # output_rgb = np.transpose(output_rgb, (1,2,0))
-    # a = 0.3
-    # alpha_layer = a*np.ones((output_rgb.shape[0], output_rgb.shape[1], 1))
-    # predict_arr = np.concatenate((output_rgb, alpha_layer), axis=2)
+
     n_colours = 9
 
     argmax = np.argmax(output, axis=1)[0]
     argmax_norm = 1/18+(argmax/n_colours)
     im_argmax = Image.fromarray(np.uint8(cm.Set1(argmax_norm)*255), mode='RGBA')
     im_argmax.save('data/temp/prediction.png')
-    im_argmax.putalpha(100)
 
-    inputs = np.transpose(x[0], (1,2,0))
-    im_inputs = Image.fromarray(inputs*255, mode='RGBA')
-    im_inputs.putalpha(255)
+    softmax = np.amax(output, axis=1)[0]
+    im_softmax = Image.fromarray(np.uint8(cm.Greys(softmax)*255), mode='RGBA')
+    im_softmax.save('data/temp/confidence.png')
 
-    blended = Image.alpha_composite(im_inputs, im_argmax)
-    blended.save('data/temp/prediction_blend.png')
+    inputs = x[0][0]
+    im_inputs = Image.fromarray(np.uint8(inputs*255), mode='L')
+    im_inputs = im_inputs.convert('RGBA')
+    im_inputs.save('data/temp/inputs.png')
+
+    im_softmax.putalpha(128)
+    blended_cp = Image.alpha_composite(im_argmax, im_softmax)
+    blended_cp.save('data/temp/confidence_prediction.png')
+
+    im_argmax.putalpha(128)
+    blended_p = Image.alpha_composite(im_inputs, im_argmax)
+    blended_p.save('data/temp/prediction_blend.png')
+
+    blended_c = Image.alpha_composite(im_inputs, im_softmax)
+    blended_c.save('data/temp/confidence_blend.png')
     return
     
 

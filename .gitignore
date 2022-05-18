@@ -6,3 +6,4 @@ sandbox.py
 *.wandb
 *.yaml
 wandb/
+*.pyc
