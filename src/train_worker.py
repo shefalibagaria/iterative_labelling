@@ -40,7 +40,7 @@ class TrainWorker(QObject):
         Net = self.net
         datapath = self.c.data_path
         label_mask = self.label_mask
-        offline = False
+        offline = True
 
         # Assign torch device
         ngpu = c.ngpu
@@ -63,6 +63,10 @@ class TrainWorker(QObject):
 
         mse_loss = nn.MSELoss(reduction='mean')
         optimizer = optim.SGD(net.parameters(), lr=lr)
+
+        if not self.overwrite:
+            net.load_state_dict(torch.load(f'{path}/Net.pt'))
+            net.eval()
 
         if ('cuda' in str(device)) and (ngpu > 1):
             net = nn.DataParallel(net, list(range(ngpu))).to(device)
@@ -95,18 +99,20 @@ class TrainWorker(QObject):
                 running_loss.append(loss.item())
 
             if epoch % 10 == 0:
-                argmax, softmax, labels = wandb_figs(outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
-                gui_figs(outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
+                with torch.no_grad():
+                    torch.save(net.state_dict(), f'{path}/Net.pt')
 
+                    argmax, softmax, labels = wandb_figs(outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
+                    gui_figs(outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
 
-                # wandb stuff - remove for final version/keep if we want it as an option
-                if not offline:
-                    wandb.log({'Loss': np.mean(running_loss)})
-                    wandb.log({'Max Softmax Value': torch.max(outputs.detach().cpu()).detach().numpy()})
-                    wandb.log({'Softmax Mean': np.mean(np.amax(outputs[0].detach().cpu().detach().numpy(), axis=0))})
-                    wandb.log({'Labels': wandb.Image(labels)})
-                    wandb.log({'Prediction': wandb.Image(argmax)})
-                    wandb.log({'Confidence map': wandb.Image(softmax)})
+                    # wandb stuff - remove for final version/keep if we want it as an option
+                    if not offline:
+                        wandb.log({'Loss': np.mean(running_loss)})
+                        wandb.log({'Max Softmax Value': torch.max(outputs.detach().cpu()).detach().numpy()})
+                        wandb.log({'Softmax Mean': np.mean(np.amax(outputs[0].detach().cpu().detach().numpy(), axis=0))})
+                        wandb.log({'Labels': wandb.Image(labels)})
+                        wandb.log({'Prediction': wandb.Image(argmax)})
+                        wandb.log({'Confidence map': wandb.Image(softmax)})
 
                 self.progress.emit(epoch, np.mean(running_loss))
                 print('epoch: {}, running loss: {}'.format(epoch+1, np.mean(running_loss)))

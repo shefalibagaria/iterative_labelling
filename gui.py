@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QMenu, QAction, QPushButton, QSpinBox, QComboBox
+from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication, QWidget, QAction, QPushButton, QSpinBox, QComboBox, QLineEdit
 from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QColor, QPolygon
 from PyQt5.QtCore import Qt, QThread
 from torch import true_divide
@@ -54,6 +54,7 @@ class Painter(QWidget):
         self.parent = parent
         self.datapath = 'data/nmc_cathode.png'
         self.image = QPixmap(self.datapath)
+        self.visualise_win = None
     
         self.shape = 'poly'
         self.polypts = []
@@ -88,11 +89,18 @@ class Painter(QWidget):
         self.old_polys = {i+1 : [] for i in range(self.n_classes)}
 
         # Drawing status label
-        self.drawStatusLabel = QLabel()
+        self.drawStatusLabel = QLabel(self)
         self.drawStatusLabel.setFocusPolicy(Qt.NoFocus)
         self.drawStatusLabel.setText('not drawing')
         drawStatus = parent.addToolBar('&drawStatus')
         drawStatus.addWidget(self.drawStatusLabel)
+
+        # Run tag
+        self.tagLineEdit = QLineEdit(self)
+        self.tagLineEdit.setText('run')
+        tagInput = parent.addToolBar('&tagInput')
+        tagInput.addWidget(self.tagLineEdit)
+
 
         # stop train
         self.stopTrain = QPushButton('Stop', self)
@@ -107,12 +115,12 @@ class Painter(QWidget):
         train.addWidget(self.trainButton)
 
         # Select view
-        self.displayComboBox = QComboBox()
-        self.displayComboBox.setFocusPolicy(Qt.NoFocus)
-        self.displayComboBox.addItems(['Input','Prediction','Confidence'])
-        self.displayComboBox.activated.connect(self.displayChanged)
-        disp_select = parent.addToolBar('&displaySelect')
-        disp_select.addWidget(self.displayComboBox)
+        # self.displayComboBox = QComboBox(self)
+        # self.displayComboBox.setFocusPolicy(Qt.NoFocus)
+        # self.displayComboBox.addItems(['Input','Prediction','Confidence'])
+        # self.displayComboBox.activated.connect(self.displayChanged)
+        # disp_select = parent.addToolBar('&displaySelect')
+        # disp_select.addWidget(self.displayComboBox)
 
         self.display = 'Input'
 
@@ -214,9 +222,9 @@ class Painter(QWidget):
         self.trainButton.hide()
         self.stopTrain.show()
 
-        tag = 'iter-run'
+        tag = self.tagLineEdit.text()
+        overwrite = util.check_exist(tag)
 
-        overwrite = False
         util.initialise_folders(tag, overwrite)
         c = Config(tag)
         c.data_path = self.datapath
@@ -242,6 +250,8 @@ class Painter(QWidget):
         # 6: Start thread
         self.thread.start()
 
+        self.visualiseWindow()
+
     def stop_train(self):
         self.training = False
         self.stopTrain.hide()
@@ -249,7 +259,9 @@ class Painter(QWidget):
 
     def progress(self, epoch, running_loss):
         self.stepLabel.setText(f'epoch: {epoch}, running loss: {running_loss:.4f}')
-        self.image = QPixmap('data/temp/confidence_prediction.png')
+        # self.image = QPixmap('data/temp/confidence_prediction.png')
+        if self.visualise_win is not None:
+            self.visualise_win.updateImage('data/temp/confidence_prediction.png')
     
     def displayChanged(self):
         self.display = self.displayComboBox.currentText()
@@ -259,11 +271,32 @@ class Painter(QWidget):
             self.image = QPixmap('data/temp/prediction_blend.png')
         if self.display == 'Confidence':
             self.image = QPixmap('data/temp/confidence_blend.png')
+
+    def visualiseWindow(self):
+        if self.visualise_win is None:
+            self.visualise_win = Visualiser()
+            self.visualise_win.show()
+
+        
     
+class Visualiser(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.path = None
+        self.label = QLabel(self)
 
+    def updateImage(self, path):
+        self.path = path
+        self.image = QPixmap(self.path)
+        # self.update()
+        if self.path is not None:
+            # print('updating')
+            self.image = QPixmap(self.path)
+            self.label.setPixmap(self.image)
+            self.label.resize(self.image.width(), self.image.height())
+            self.resize(self.image.width(), self.image.height())
+            
 
-
-    
     
 def main():
     app = QApplication(sys.argv)

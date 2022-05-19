@@ -16,14 +16,14 @@ class Config():
         self.batch_size = 2
         self.beta1 = 0.9       # what are beta 1 and 2 
         self.beta2 = 0.999
-        self.num_epochs = 10000
+        self.num_epochs = 100
         self.iters = 1
         self.lrg = 0.0001       # what is lrg
         self.lr = 0.001
         self.Lambda = 10        # what is lambda
         self.critic_iters = 10  # what is critic_iters
         self.lz = 4             # what is lz
-        self.ngpu = 1
+        self.ngpu = 0
         if self.ngpu > 0:
             self.device_name = "cuda:0"
         else:
@@ -31,15 +31,8 @@ class Config():
         self.nz = 100           # what is nz
         # Architecture
         self.lays = 4
-        self.laysd = 5          # what is laysd
-        # kernel sizes
-        # self.dk, self.gk = [4]*self.laysd, [3]*self.lays
-        # self.ds, self.gs = [2]*self.laysd, [1]*self.lays
-        # self.df, self.gf = [self.n_phases, 64, 128, 256, 512, 1], [
-        #     16, 16, 16, 16, self.n_phases]
-        # self.dp = [1, 1, 1, 1, 0]
-        # self.gp = [1, 1, 1, 1, 1]
 
+        # kernel sizes
         self.k = [3]*self.lays
         self.s = [1]*self.lays
         self.p = [1]*self.lays

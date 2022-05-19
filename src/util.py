@@ -50,6 +50,12 @@ def check_existence(tag):
             raise AssertionError("Incorrect argument entered.")
     return True
 
+def check_exist(tag):
+    root = f'runs/{tag}'
+    if os.path.exists(f'{root}/Net.pt'):
+        return False
+    else:
+        return True
 
 # set-up util
 def initialise_folders(tag, overwrite):
@@ -381,7 +387,7 @@ def gui_figs(output, x, y):
 
     softmax = np.amax(output, axis=1)[0]
     softmax = (softmax-(1/n_classes))*(n_classes/(n_classes-1))
-    print(f'n classes: {n_classes}, softmax max: {np.amax(softmax)}, softmax min: {np.amin(softmax)}')
+    # print(f'n classes: {n_classes}, softmax max: {np.amax(softmax)}, softmax min: {np.amin(softmax)}')
     alpha = 0.8*(1-softmax)
     alpha = np.expand_dims(alpha, axis=2)
     black = np.zeros((output.shape[2], output.shape[3], 3))
