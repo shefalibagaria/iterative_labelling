@@ -53,9 +53,9 @@ def check_existence(tag):
 def check_exist(tag):
     root = f'runs/{tag}'
     if os.path.exists(f'{root}/Net.pt'):
-        return False
-    else:
         return True
+    else:
+        return False
 
 # set-up util
 def initialise_folders(tag, overwrite):
