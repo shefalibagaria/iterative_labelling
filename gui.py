@@ -249,7 +249,7 @@ class Painter(QWidget):
 
     def progress(self, epoch, running_loss):
         self.stepLabel.setText(f'epoch: {epoch}, running loss: {running_loss:.4f}')
-        self.displayChanged()
+        self.image = QPixmap('data/temp/confidence_prediction.png')
     
     def displayChanged(self):
         self.display = self.displayComboBox.currentText()

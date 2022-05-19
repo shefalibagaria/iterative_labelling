@@ -372,6 +372,7 @@ def gui_figs(output, x, y):
     x = x.numpy()
 
     n_colours = 9
+    n_classes = output.shape[1]
 
     argmax = np.argmax(output, axis=1)[0]
     argmax_norm = 1/18+(argmax/n_colours)
@@ -379,7 +380,12 @@ def gui_figs(output, x, y):
     im_argmax.save('data/temp/prediction.png')
 
     softmax = np.amax(output, axis=1)[0]
-    im_softmax = Image.fromarray(np.uint8(cm.Greys(softmax)*255), mode='RGBA')
+    softmax = (softmax-(1/n_classes))*(n_classes/(n_classes-1))
+    print(f'n classes: {n_classes}, softmax max: {np.amax(softmax)}, softmax min: {np.amin(softmax)}')
+    alpha = 0.8*(1-softmax)
+    alpha = np.expand_dims(alpha, axis=2)
+    black = np.zeros((output.shape[2], output.shape[3], 3))
+    im_softmax = Image.fromarray(np.uint8(np.concatenate((black, alpha), axis=2)*255), mode='RGBA')
     im_softmax.save('data/temp/confidence.png')
 
     inputs = x[0][0]
@@ -387,11 +393,10 @@ def gui_figs(output, x, y):
     im_inputs = im_inputs.convert('RGBA')
     im_inputs.save('data/temp/inputs.png')
 
-    im_softmax.putalpha(128)
     blended_cp = Image.alpha_composite(im_argmax, im_softmax)
     blended_cp.save('data/temp/confidence_prediction.png')
 
-    im_argmax.putalpha(128)
+    im_argmax.putalpha(110)
     blended_p = Image.alpha_composite(im_inputs, im_argmax)
     blended_p.save('data/temp/prediction_blend.png')
 
