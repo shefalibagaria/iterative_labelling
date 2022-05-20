@@ -40,7 +40,7 @@ class TrainWorker(QObject):
         Net = self.net
         datapath = self.c.data_path
         label_mask = self.label_mask
-        offline = True
+        offline = False
 
         # Assign torch device
         ngpu = c.ngpu
