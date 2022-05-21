@@ -53,9 +53,10 @@ class Painter(QWidget):
         super(Painter, self).__init__(parent)
         self.parent = parent
         self.datapath = 'data/nmc_cathode.png'
+        self.temp_path = ''
         self.image = QPixmap(self.datapath)
-        self.visualise_win = None
         self.cursorLabel = QLabel(self)
+        self.visualise_win = None
     
         self.shape = 'poly'
         self.polypts = []
@@ -237,16 +238,18 @@ class Painter(QWidget):
 
         util.initialise_folders(tag, overwrite)
         c = Config(tag)
+        self.temp_path = c.path+'/temp'
         c.data_path = self.datapath
         c.n_phases = self.n_classes
         c.f[-1] = c.n_phases
+
         net = make_nets(c, overwrite, self.training)
 
         # 1: Create worker class (TrainWorker)
         # 2: Create QThread object
         self.thread = QThread()
         # 3: Create worker object
-        self.worker = TrainWorker(c, self.labels, net, overwrite)
+        self.worker = TrainWorker(c, self.labels,self.temp_path, net, overwrite)
         # 4: Move worker to thread
         self.worker.moveToThread(self.thread)
         # 5: Connect Signals and Slots
@@ -270,18 +273,21 @@ class Painter(QWidget):
     def progress(self, epoch, running_loss):
         # self.stepLabel.setText(f'epoch: {epoch}, running loss: {running_loss:.4f}')
         text = f'epoch: {epoch}, running loss: {running_loss:.4f}'
-        # self.image = QPixmap('data/temp/confidence_prediction.png')
         if self.visualise_win is not None:
             self.visualise_win.updateImage('data/temp/confidence_prediction.png', text)
+        self.displayChanged()
     
     def displayChanged(self):
         self.display = self.displayComboBox.currentText()
-        if self.display == 'Input':
-            self.image = QPixmap(self.datapath)
-        if self.display == 'Prediction':
-            self.image = QPixmap('data/temp/prediction_blend.png')
-        if self.display == 'Confidence':
-            self.image = QPixmap('data/temp/confidence_blend.png')
+        try:
+            if self.display == 'Input':
+                self.image = QPixmap(self.datapath)
+            if self.display == 'Prediction':
+                self.image = QPixmap(self.temp_path+'/prediction_blend.png')
+            if self.display == 'Confidence':
+                self.image = QPixmap(self.temp_path+'/confidence_blend.png')
+        except:
+            print('Image read failed')
         self.update()
 
     def visualiseWindow(self):

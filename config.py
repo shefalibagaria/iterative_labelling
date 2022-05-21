@@ -23,7 +23,7 @@ class Config():
         self.Lambda = 10        # what is lambda
         self.critic_iters = 10  # what is critic_iters
         self.lz = 4             # what is lz
-        self.ngpu = 1
+        self.ngpu = 0
         if self.ngpu > 0:
             self.device_name = "cuda:0"
         else:

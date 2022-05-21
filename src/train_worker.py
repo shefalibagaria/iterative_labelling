@@ -9,10 +9,11 @@ import time
 from PyQt5.QtCore import QObject, pyqtSignal
 
 class TrainWorker(QObject):
-    def __init__(self, c, label_mask, Net, overwrite):
+    def __init__(self, c, label_mask, temp_path, Net, overwrite):
         super().__init__()
         self.c = c
         self.label_mask = label_mask
+        self.temp_path = temp_path
         self.net = Net
         self.overwrite = overwrite
         self.quit_flag = False
@@ -40,7 +41,7 @@ class TrainWorker(QObject):
         Net = self.net
         datapath = self.c.data_path
         label_mask = self.label_mask
-        offline = False
+        offline = True
 
         # Assign torch device
         ngpu = c.ngpu
@@ -103,7 +104,7 @@ class TrainWorker(QObject):
                     torch.save(net.state_dict(), f'{path}/Net.pt')
 
                     argmax, softmax, labels = wandb_figs(outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
-                    gui_figs(outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
+                    gui_figs(self.temp_path, outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
 
                     # wandb stuff - remove for final version/keep if we want it as an option
                     if not offline:

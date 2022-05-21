@@ -73,6 +73,11 @@ def initialise_folders(tag, overwrite):
             os.mkdir(f'runs/{tag}')
         except:
             pass
+        try:
+            os.mkdir(f'runs/{tag}/temp')
+        except:
+            print('didnt make temp')
+            pass
 
 def wandb_init(name, offline):
     """[summary]
@@ -373,7 +378,7 @@ def wandb_figs(output, x, y):
 
     return img_argmax, img_softmax, img_labels
 
-def gui_figs(output, x, y):
+def gui_figs(path, output, x, y):
     output = output.numpy()
     x = x.numpy()
 
@@ -383,7 +388,7 @@ def gui_figs(output, x, y):
     argmax = np.argmax(output, axis=1)[0]
     argmax_norm = 1/18+(argmax/n_colours)
     im_argmax = Image.fromarray(np.uint8(cm.Set1(argmax_norm)*255), mode='RGBA')
-    im_argmax.save('data/temp/prediction.png')
+    im_argmax.save(path+'/prediction.png')
 
     softmax = np.amax(output, axis=1)[0]
     softmax = (softmax-(1/n_classes))*(n_classes/(n_classes-1))
@@ -392,29 +397,24 @@ def gui_figs(output, x, y):
     alpha = np.expand_dims(alpha, axis=2)
     black = np.zeros((output.shape[2], output.shape[3], 3))
     im_softmax = Image.fromarray(np.uint8(np.concatenate((black, alpha), axis=2)*255), mode='RGBA')
-    im_softmax.save('data/temp/confidence.png')
+    im_softmax.save(path+'/confidence.png')
 
     inputs = x[0][0]
     im_inputs = Image.fromarray(np.uint8(inputs*255), mode='L')
     im_inputs = im_inputs.convert('RGBA')
-    im_inputs.save('data/temp/inputs.png')
+    im_inputs.save(path+'/inputs.png')
 
     blended_cp = Image.alpha_composite(im_argmax, im_softmax)
-    blended_cp.save('data/temp/confidence_prediction.png')
+    blended_cp.save(path+'/confidence_prediction.png')
 
     im_argmax.putalpha(110)
     blended_p = Image.alpha_composite(im_inputs, im_argmax)
-    blended_p.save('data/temp/prediction_blend.png')
+    blended_p.save(path+'/prediction_blend.png')
 
     blended_c = Image.alpha_composite(im_inputs, im_softmax)
-    blended_c.save('data/temp/confidence_blend.png')
+    blended_c.save(path+'/confidence_blend.png')
     return
     
-
-    
-
-
-
 
 class NMCDataset(data.Dataset):
     def __init__(self, inputs: list, targets: list, transform=None):
