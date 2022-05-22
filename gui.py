@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication, QWidget, QAction, QPushButton, QSpinBox, QComboBox, QLineEdit, QCheckBox
+from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication, QWidget, QAction, QPushButton, QSpinBox, QComboBox, QLineEdit, QCheckBox, QFileDialog
 from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QColor, QPolygon, QCursor
 from PyQt5.QtCore import Qt, QThread
 from torch import true_divide
@@ -119,6 +119,12 @@ class Painter(QWidget):
         overwriteCheck = parent.addToolBar('&overwriteCheck')
         overwriteCheck.addWidget(self.overwriteCheckbox)
 
+        self.fileButton = QPushButton('File',self)
+        self.fileButton.setFocusPolicy(Qt.NoFocus)
+        self.fileButton.clicked.connect(self.browseImage)
+        file = parent.addToolBar('&fileButton')
+        file.addWidget(self.fileButton)
+
         # Select view
         self.displayComboBox = QComboBox(self)
         self.displayComboBox.setFocusPolicy(Qt.NoFocus)
@@ -135,6 +141,15 @@ class Painter(QWidget):
         # label.addWidget(self.stepLabel)
 
         self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))
+
+    def browseImage(self):
+        fname = QFileDialog.getOpenFileName(self, 'Open File', 'c\\', 'Image files ( *.png *.jpg *.jpeg')
+        self.datapath = fname[0]
+        self.image = QPixmap(self.datapath)
+        self.resize(self.image.width(), self.image.height())
+        self.parent.resize(self.image.width(), self.image.height())
+        self.cursorLabel.resize(self.image.width(), self.image.height())
+        self.update()
 
 
     def paintEvent(self, event):
