@@ -39,7 +39,7 @@ class TrainWorker(QObject):
         """
         c = self.c
         Net = self.net
-        datapath = self.c.data_path
+        datapath = c.data_path
         label_mask = self.label_mask
         offline = True
 
