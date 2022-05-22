@@ -365,7 +365,7 @@ def visualise(output, x, y):
 def wandb_figs(output, x, y):
     output = output.numpy()
     argmax = 1 + np.argmax(output, axis=1)[0]
-    argmax_norm = argmax/np.amax(argmax)
+    argmax_norm = argmax/output.shape[1]
     img_argmax = Image.fromarray(np.uint8(cm.inferno(argmax_norm)*255))
 
     softmax_max = np.amax(output, axis=1)[0]
@@ -373,7 +373,7 @@ def wandb_figs(output, x, y):
 
     layer = np.zeros((1, output.shape[2], output.shape[3]))
     labels = np.argmax(np.concatenate((layer, y.numpy()[0]), axis=0), axis=0)
-    labels_norm = labels/np.amax(labels)
+    labels_norm = labels/output.shape[1]
     img_labels = Image.fromarray(np.uint8(cm.inferno(labels_norm)*255))
 
     return img_argmax, img_softmax, img_labels
@@ -405,14 +405,14 @@ def gui_figs(path, output, x, y):
     im_inputs.save(path+'/inputs.png')
 
     blended_cp = Image.alpha_composite(im_argmax, im_softmax)
-    blended_cp.save(path+'/confidence_prediction.png')
+    blended_cp.save(path+'/confidenceprediction.png')
 
     im_argmax.putalpha(110)
     blended_p = Image.alpha_composite(im_inputs, im_argmax)
-    blended_p.save(path+'/prediction_blend.png')
+    blended_p.save(path+'/predictionblend.png')
 
     blended_c = Image.alpha_composite(im_inputs, im_softmax)
-    blended_c.save(path+'/confidence_blend.png')
+    blended_c.save(path+'/confidenceblend.png')
     return
     
 

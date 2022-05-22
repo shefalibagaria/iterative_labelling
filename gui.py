@@ -24,12 +24,12 @@ class MainWindow(QMainWindow):
         self.setGeometry(30,30,self.painterWidget.image.width(),self.painterWidget.image.height()+30)
 
         #save map
-        mainMenu = self.menuBar()
-        fileMenu = mainMenu.addMenu("file")
-        saveAction = QAction("save", self)
-        saveAction.setShortcut("Ctrl+S")
-        fileMenu.addAction(saveAction)
-        saveAction.triggered.connect(self.save)
+        # mainMenu = self.menuBar()
+        # fileMenu = mainMenu.addMenu("file")
+        # saveAction = QAction("save", self)
+        # saveAction.setShortcut("Ctrl+S")
+        # fileMenu.addAction(saveAction)
+        # saveAction.triggered.connect(self.save)
         self.show()
     
     def save(self):
@@ -289,33 +289,37 @@ class Painter(QWidget):
         # self.stepLabel.setText(f'epoch: {epoch}, running loss: {running_loss:.4f}')
         text = f'epoch: {epoch}, running loss: {running_loss:.4f}'
         if self.visualise_win is not None:
-            self.visualise_win.updateImage('data/temp/confidence_prediction.png', text)
+            self.visualise_win.updateImage(True, text)
         self.displayChanged()
     
     def displayChanged(self):
         self.display = self.displayComboBox.currentText()
-        try:
-            if self.display == 'Input':
-                self.image = QPixmap(self.datapath)
+        # try:
+        if self.display == 'Input':
+            self.image = QPixmap(self.datapath)
+        if self.temp_path != '':
             if self.display == 'Prediction':
-                self.image = QPixmap(self.temp_path+'/prediction_blend.png')
+                self.image = QPixmap(self.temp_path+'/predictionblend.png')
             if self.display == 'Confidence':
-                self.image = QPixmap(self.temp_path+'/confidence_blend.png')
-        except:
-            print('Image read failed')
+                self.image = QPixmap(self.temp_path+'/confidenceblend.png')
+        # except:
+        #     pass
+        # finally:
+        #     print('failed')
+        #     self.image = QPixmap(self.datapath)
         self.update()
 
     def visualiseWindow(self):
         if self.visualise_win is None:
-            self.visualise_win = Visualiser()
+            self.visualise_win = Visualiser(self.temp_path)
             self.visualise_win.show()
 
 
 class Visualiser(QMainWindow):
-    def __init__(self):
+    def __init__(self, path):
         super().__init__()
         self.trainingBegin = False
-
+        self.path = path
         self.label = QLabel(self)
         self.label.move(0,30)
 
@@ -340,18 +344,18 @@ class Visualiser(QMainWindow):
         # self.update()
         self.trainingBegin = True
         if self.confidenceOverlay.isChecked():
-            self.image = QPixmap('data/temp/confidence_prediction.png')
+            self.image = QPixmap(self.path+'/confidenceprediction.png')
         else:
-            self.image = QPixmap('data/temp/prediction.png')
+            self.image = QPixmap(self.path+'/prediction.png')
         self.label.setPixmap(self.image)
         self.label.resize(self.image.width(), self.image.height())
         self.setGeometry(30+self.image.width(), 30, self.image.width(), self.image.height()+30)
 
     def displayChanged(self):
         if self.confidenceOverlay.isChecked():
-            self.image = QPixmap('data/temp/confidence_prediction.png')
+            self.image = QPixmap(self.path+'/confidenceprediction.png')
         else:
-            self.image = QPixmap('data/temp/prediction.png')
+            self.image = QPixmap(self.path+'/prediction.png')
         self.label.setPixmap(self.image)
             
 
