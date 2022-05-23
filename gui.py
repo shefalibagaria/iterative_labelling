@@ -7,6 +7,7 @@ from config import Config
 from src.train_worker import TrainWorker
 import src.util as util
 from src.networks import make_nets
+from windows import Visualiser
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.path import Path
@@ -66,6 +67,13 @@ class Painter(QWidget):
 
         self.training = False
 
+        # Select image file
+        self.fileButton = QPushButton('File',self)
+        self.fileButton.setFocusPolicy(Qt.NoFocus)
+        self.fileButton.clicked.connect(self.browseImage)
+        file = parent.addToolBar('&fileButton')
+        file.addWidget(self.fileButton)
+
         # Select no. of classes in image
         self.nClassesSpinBox = QSpinBox()
         self.nClassesSpinBox.setFocusPolicy(Qt.NoFocus)
@@ -114,16 +122,10 @@ class Painter(QWidget):
         train = parent.addToolBar('&trainButton')
         train.addWidget(self.trainButton)
 
-        self.overwriteCheckbox = QCheckBox('overwrite',self)
-        self.overwriteCheckbox.setFocusPolicy(Qt.NoFocus)
-        overwriteCheck = parent.addToolBar('&overwriteCheck')
-        overwriteCheck.addWidget(self.overwriteCheckbox)
-
-        self.fileButton = QPushButton('File',self)
-        self.fileButton.setFocusPolicy(Qt.NoFocus)
-        self.fileButton.clicked.connect(self.browseImage)
-        file = parent.addToolBar('&fileButton')
-        file.addWidget(self.fileButton)
+        # self.overwriteCheckbox = QCheckBox('overwrite',self)
+        # self.overwriteCheckbox.setFocusPolicy(Qt.NoFocus)
+        # overwriteCheck = parent.addToolBar('&overwriteCheck')
+        # overwriteCheck.addWidget(self.overwriteCheckbox)
 
         # Select view
         self.displayComboBox = QComboBox(self)
@@ -134,11 +136,6 @@ class Painter(QWidget):
         disp_select.addWidget(self.displayComboBox)
 
         self.display = 'Input'
-
-        # self.stepLabel = QLabel('step label')
-        # self.stepLabel.setFocusPolicy(Qt.NoFocus)
-        # label = parent.addToolBar('&stepLabel')
-        # label.addWidget(self.stepLabel)
 
         self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))
 
@@ -313,50 +310,6 @@ class Painter(QWidget):
         if self.visualise_win is None:
             self.visualise_win = Visualiser(self.temp_path)
             self.visualise_win.show()
-
-
-class Visualiser(QMainWindow):
-    def __init__(self, path):
-        super().__init__()
-        self.trainingBegin = False
-        self.path = path
-        self.label = QLabel(self)
-        self.label.move(0,30)
-
-        self.stepLabel = QLabel('step label',self)
-        self.stepLabel.setFocusPolicy(Qt.NoFocus)
-        # self.stepLabel.resize(100, 50)
-        label = self.addToolBar('&stepLabel')
-        label.setFixedHeight(30)
-        label.addWidget(self.stepLabel)
-
-        # select view
-        self.confidenceOverlay = QCheckBox('Confidence',self)
-        self.confidenceOverlay.setFocusPolicy(Qt.NoFocus)
-        self.confidenceOverlay.stateChanged.connect(self.displayChanged)
-        disp_select = self.addToolBar('&displaySelect')
-        disp_select.addWidget(self.confidenceOverlay)
-
-
-    def updateImage(self, training, text):
-        self.setWindowTitle('Network Prediction')
-        self.stepLabel.setText(text)
-        # self.update()
-        self.trainingBegin = True
-        if self.confidenceOverlay.isChecked():
-            self.image = QPixmap(self.path+'/confidenceprediction.png')
-        else:
-            self.image = QPixmap(self.path+'/prediction.png')
-        self.label.setPixmap(self.image)
-        self.label.resize(self.image.width(), self.image.height())
-        self.setGeometry(30+self.image.width(), 30, self.image.width(), self.image.height()+30)
-
-    def displayChanged(self):
-        if self.confidenceOverlay.isChecked():
-            self.image = QPixmap(self.path+'/confidenceprediction.png')
-        else:
-            self.image = QPixmap(self.path+'/prediction.png')
-        self.label.setPixmap(self.image)
             
 
 def main():

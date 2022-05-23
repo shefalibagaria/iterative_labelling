@@ -8,3 +8,4 @@ sandbox.py
 wandb/
 *.pyc
 runs/
+src/__pycache__/
