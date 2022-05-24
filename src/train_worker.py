@@ -9,13 +9,15 @@ import time
 from PyQt5.QtCore import QObject, pyqtSignal
 
 class TrainWorker(QObject):
-    def __init__(self, c, label_mask, temp_path, Net, overwrite):
+    def __init__(self, c, label_mask, temp_path, Net, max_time, overwrite, offline):
         super().__init__()
         self.c = c
         self.label_mask = label_mask
         self.temp_path = temp_path
         self.net = Net
+        self.max_time = max_time
         self.overwrite = overwrite
+        self.offline = offline
         self.quit_flag = False
         print('init trainworker')
         
@@ -41,7 +43,6 @@ class TrainWorker(QObject):
         Net = self.net
         datapath = c.data_path
         label_mask = self.label_mask
-        offline = True
 
         # Assign torch device
         ngpu = c.ngpu
@@ -72,22 +73,26 @@ class TrainWorker(QObject):
         if ('cuda' in str(device)) and (ngpu > 1):
             net = nn.DataParallel(net, list(range(ngpu))).to(device)
 
-        if not offline:
-            wandb_init(tag, offline)
+        if not self.offline:
+            wandb_init(tag, self.offline)
             wandb.watch(net, log='all', log_freq = 100)
 
+        t = 0
+        # start timing
+        if ('cuda' in str(device)) and (ngpu > 1):
+            start_overall = torch.cuda.Event(enable_timing=True)
+            end_overall = torch.cuda.Event(enable_timing=True)
+            start_overall.record()
+        else:
+            start_overall = time.time()
+
         for epoch in range(num_epochs):
-            if self.quit_flag:
+            if self.quit_flag or t>self.max_time:
                 break
             times = []
             running_loss = []
             for i, d in enumerate(dataloader):
-                if ('cuda' in str(device)) and (ngpu > 1):
-                    start_overall = torch.cuda.Event(enable_timing=True)
-                    end_overall = torch.cuda.Event(enable_timing=True)
-                    start_overall.record()
-                else:
-                    start_overall = time.time()
+        
                 x, y = d
                 # print('x shape: ', x.shape, 'y shape: ', y.shape)
                 net.zero_grad()
@@ -107,13 +112,23 @@ class TrainWorker(QObject):
                     gui_figs(self.temp_path, outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu())
 
                     # wandb stuff - remove for final version/keep if we want it as an option
-                    if not offline:
+                    if not self.offline:
                         wandb.log({'Loss': np.mean(running_loss)})
                         wandb.log({'Max Softmax Value': torch.max(outputs.detach().cpu()).detach().numpy()})
                         wandb.log({'Softmax Mean': np.mean(np.amax(outputs[0].detach().cpu().detach().numpy(), axis=0))})
                         wandb.log({'Labels': wandb.Image(labels)})
                         wandb.log({'Prediction': wandb.Image(argmax)})
                         wandb.log({'Confidence map': wandb.Image(softmax)})
+                    
+                    if ('cuda' in str(device)) and (ngpu > 1):
+                        end_overall.record()
+                        torch.cuda.synchronize()
+                        t = start_overall.elapsed_time(end_overall)
+                    else:
+                        end_overall = time.time()
+                        t = end_overall-start_overall
+
+                    times.append(t)
 
                 self.progress.emit(epoch, np.mean(running_loss))
                 print('epoch: {}, running loss: {}'.format(epoch+1, np.mean(running_loss)))

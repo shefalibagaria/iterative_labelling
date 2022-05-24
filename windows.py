@@ -51,6 +51,7 @@ class Options(QWidget):
         super().__init__()
         self.options_set = False
         self.epochs = 5000
+        self.max_time = 120
         self.n_gpu = 0
         self.offline = True
         self.overwrite = False
@@ -71,6 +72,17 @@ class Options(QWidget):
         epochLayout.addWidget(self.epochLineEdit)
         layout.addLayout(epochLayout)
 
+        timeLayout = QHBoxLayout()
+        self.timeLabel = QLabel(self)
+        self.timeLabel.setText('max runtime (s):')
+        self.timeLineEdit = QLineEdit(self)
+        self.timeLineEdit.setValidator(self.onlyInt)
+        self.timeLineEdit.setText(str(self.max_time))
+        self.timeLineEdit.textChanged.connect(self.timeChanged)
+        timeLayout.addWidget(self.timeLabel)
+        timeLayout.addWidget(self.timeLineEdit)
+        layout.addLayout(timeLayout)
+
         n_gpuLayout = QHBoxLayout()
         self.n_gpuLabel = QLabel(self)
         self.n_gpuLabel.setText('no. GPUs:')
@@ -82,15 +94,6 @@ class Options(QWidget):
         n_gpuLayout.addWidget(self.n_gpuLineEdit)
         layout.addLayout(n_gpuLayout)
 
-        wandbLayout = QHBoxLayout()
-        self.wandbLabel = QLabel(self)
-        self.wandbLabel.setText('log on WandB:')
-        self.wandbCheckBox = QCheckBox(self)
-        self.wandbCheckBox.toggled.connect(self.wandbToggled)
-        wandbLayout.addWidget(self.wandbLabel)
-        wandbLayout.addWidget(self.wandbCheckBox)
-        layout.addLayout(wandbLayout)
-
         overwriteLayout = QHBoxLayout()
         self.overwriteLabel = QLabel(self)
         self.overwriteLabel.setText('overwrite:')
@@ -100,23 +103,34 @@ class Options(QWidget):
         overwriteLayout.addWidget(self.overwriteCheckBox)
         layout.addLayout(overwriteLayout)
 
+        wandbLayout = QHBoxLayout()
+        self.wandbLabel = QLabel(self)
+        self.wandbLabel.setText('log on WandB:')
+        self.wandbCheckBox = QCheckBox(self)
+        self.wandbCheckBox.toggled.connect(self.wandbToggled)
+        wandbLayout.addWidget(self.wandbLabel)
+        wandbLayout.addWidget(self.wandbCheckBox)
+        layout.addLayout(wandbLayout)
+
         self.setLayout(layout)
-        self.show()
     
     def epochChanged(self):
         self.epochs = int(self.epochLineEdit.text())
     
+    def timeChanged(self):
+        self.max_time = int(self.timeLineEdit.text())
+
     def gpuChanged(self):
         self.n_gpu = int(self.n_gpuLineEdit.text())
         
+    def overwriteToggled(self):
+        self.overwrite = self.overwriteCheckBox.isChecked()
+
     def wandbToggled(self):
         if self.wandbCheckBox.isChecked():
             self.offline = False
         else:
             self.offline = True
-
-    def overwriteToggled(self):
-        self.overwrite = self.overwriteCheckBox.isChecked()
 
 def main():
     app = QApplication(sys.argv)

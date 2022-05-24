@@ -1,13 +1,13 @@
 import sys
-from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication, QWidget, QAction, QPushButton, QSpinBox, QComboBox, QLineEdit, QCheckBox, QFileDialog
-from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QColor, QPolygon, QCursor
-from PyQt5.QtCore import Qt, QThread
+from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication, QWidget, QShortcut, QPushButton, QSpinBox, QComboBox, QLineEdit, QCheckBox, QFileDialog
+from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QColor, QPolygon, QCursor, QIcon, QKeySequence, QKeyEvent
+from PyQt5.QtCore import Qt, QThread, QEvent
 from torch import true_divide
 from config import Config
 from src.train_worker import TrainWorker
 import src.util as util
 from src.networks import make_nets
-from windows import Visualiser
+from windows import Visualiser, Options
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.path import Path
@@ -19,10 +19,10 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('Segmentatron 9000')
+        self.setWindowTitle('Labelling')
         self.painterWidget = Painter(self)
         self.setCentralWidget(self.painterWidget)
-        self.setGeometry(30,30,self.painterWidget.image.width(),self.painterWidget.image.height()+30)
+        self.setGeometry(30,30,self.painterWidget.image.width(),self.painterWidget.image.height())
 
         #save map
         # mainMenu = self.menuBar()
@@ -57,15 +57,26 @@ class Painter(QWidget):
         self.temp_path = ''
         self.image = QPixmap(self.datapath)
         self.cursorLabel = QLabel(self)
+
+        self.setFocusPolicy(Qt.StrongFocus)
+
+        # init other windows
         self.visualise_win = None
+        self.o = Options()
     
         self.shape = 'poly'
         self.polypts = []
-        self.old_polys = []
+        self.prev_polys = []
         self.begin = None
         self.end = None
 
         self.training = False
+
+        # Current Options
+        self.epochs = 5000
+        self.max_time = 120
+        self.n_gpu = 0
+        self.overwriteCheck = False
 
         # Select image file
         self.fileButton = QPushButton('File',self)
@@ -93,21 +104,21 @@ class Painter(QWidget):
         classSelect = parent.addToolBar('&classSelect')
         classSelect.addWidget(self.classComboBox)
 
+        self.prevClasses = []
         self.currentClass = 1
 
         # Create polygon dictionary
         self.old_polys = {i+1 : [] for i in range(self.n_classes)}
 
-        # Drawing status label
-        # self.drawStatusLabel = QLabel(self)
-        # self.drawStatusLabel.setFocusPolicy(Qt.NoFocus)
-        # self.drawStatusLabel.setText('not drawing')
-        # drawStatus = parent.addToolBar('&drawStatus')
-        # drawStatus.addWidget(self.drawStatusLabel)
+        # Undo last poly
+        self.undoShortcut = QShortcut(QKeySequence("Ctrl+Z"), self)
+        self.undoShortcut.activated.connect(self.onUndo)
 
         # Run tag
         self.tagLineEdit = QLineEdit(self)
         self.tagLineEdit.setText('run')
+        self.tagLineEdit.setFocusPolicy(Qt.ClickFocus)
+        # self.tagLineEdit.focusOutEvent(QEvent())
         tagInput = parent.addToolBar('&tagInput')
         tagInput.addWidget(self.tagLineEdit)
 
@@ -122,11 +133,6 @@ class Painter(QWidget):
         train = parent.addToolBar('&trainButton')
         train.addWidget(self.trainButton)
 
-        # self.overwriteCheckbox = QCheckBox('overwrite',self)
-        # self.overwriteCheckbox.setFocusPolicy(Qt.NoFocus)
-        # overwriteCheck = parent.addToolBar('&overwriteCheck')
-        # overwriteCheck.addWidget(self.overwriteCheckbox)
-
         # Select view
         self.displayComboBox = QComboBox(self)
         self.displayComboBox.setFocusPolicy(Qt.NoFocus)
@@ -137,10 +143,26 @@ class Painter(QWidget):
 
         self.display = 'Input'
 
+        # show visualiser
+        self.visualiseButton = QPushButton(self)
+        self.visualiseButton.setFocusPolicy(Qt.NoFocus)
+        self.visualiseButton.setIcon(QIcon('icons/eye.png'))
+        self.visualiseButton.clicked.connect(self.visualiseWindow)
+
+        # show options
+        self.optionsButton = QPushButton(self)
+        self.optionsButton.setFocusPolicy(Qt.NoFocus)
+        self.optionsButton.setIcon(QIcon('icons/settings.png'))
+        self.optionsButton.clicked.connect(self.optionsWindow)
+
+        options = parent.addToolBar('&options')
+        options.addWidget(self.optionsButton)
+        options.addWidget(self.visualiseButton)
+
         self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))
 
     def browseImage(self):
-        fname = QFileDialog.getOpenFileName(self, 'Open File', 'c\\', 'Image files ( *.png *.jpg *.jpeg')
+        fname = QFileDialog.getOpenFileName(self, 'Open File', 'c\\', 'Image files ( *.png *.jpg *.jpeg)')
         self.datapath = fname[0]
         self.image = QPixmap(self.datapath)
         self.resize(self.image.width(), self.image.height())
@@ -187,18 +209,12 @@ class Painter(QWidget):
     def mousePressEvent(self, event):
         self.begin = event.pos()
         self.end = event.pos()
-        self.cursorLabel.setCursor(QCursor(Qt.CrossCursor))
+        self.cursorLabel.setCursor(QCursor(Qt.PointingHandCursor))
         if self.shape == 'poly':
             if len(self.polypts) == 0:
                 self.polypts.append(self.begin)
             self.polypts.append(self.end)
-            # self.setMouseTracking(True)
-            # self.drawStatusLabel.setText('drawing')
             self.update()
-
-    # def mouseReleaseEvent(self, event):
-    #     if self.shape != 'poly':
-    #         self.last_x, self.last_y = None, None
 
     def mouseDoubleClickEvent(self, event):
         # ends current shape
@@ -208,11 +224,21 @@ class Painter(QWidget):
                 self.polypts.append(self.begin)
             self.polypts.append(self.end)
             self.setMouseTracking(False)
-            # self.drawStatusLabel.setText('not drawing')
             self.old_polys[self.currentClass].append(self.polypts)
             self.updateLabels(self.polypts)
+            self.prev_polys.append(self.polypts)
+            self.prevClasses.append(self.currentClass)
             self.polypts = []
             self.update()       
+
+    def onUndo(self):
+        try:
+            self.old_polys[self.prevClasses[-1]].remove(self.prev_polys[-1])
+            self.prevClasses.pop()
+            self.prev_polys.pop()
+            self.update()
+        except:
+            pass
 
     def nValueChange(self):
         self.n_classes = self.nClassesSpinBox.value()
@@ -245,23 +271,29 @@ class Painter(QWidget):
         tag = self.tagLineEdit.text()
         exists = util.check_exist(tag)
         overwrite = True
-        if exists and self.overwriteCheckbox.isChecked() == False:
+        if exists and self.o.overwrite == False:
             overwrite = False
 
         util.initialise_folders(tag, overwrite)
         c = Config(tag)
         self.temp_path = c.path+'/temp'
+
+        # Update config based on options
         c.data_path = self.datapath
         c.n_phases = self.n_classes
         c.f[-1] = c.n_phases
-
+        c.num_epochs = self.o.epochs
+        c.ngpu = self.o.n_gpu
+        offline = self.o.offline
+        max_time = self.o.max_time
+        
         net = make_nets(c, overwrite, self.training)
 
         # 1: Create worker class (TrainWorker)
         # 2: Create QThread object
         self.thread = QThread()
         # 3: Create worker object
-        self.worker = TrainWorker(c, self.labels,self.temp_path, net, overwrite)
+        self.worker = TrainWorker(c, self.labels, self.temp_path, net, max_time, overwrite, offline)
         # 4: Move worker to thread
         self.worker.moveToThread(self.thread)
         # 5: Connect Signals and Slots
@@ -309,7 +341,14 @@ class Painter(QWidget):
     def visualiseWindow(self):
         if self.visualise_win is None:
             self.visualise_win = Visualiser(self.temp_path)
-            self.visualise_win.show()
+        self.visualise_win.show()
+    
+    def optionsWindow(self):
+        if self.o.isVisible():
+            self.o.hide()
+        else:
+            self.o.show()
+            self.o.activateWindow()
             
 
 def main():
