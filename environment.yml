@@ -1,4 +1,4 @@
-name: wekatest
+name: iterative-labelling
 channels:
   - pytorch
   - anaconda

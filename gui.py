@@ -273,9 +273,10 @@ class Painter(QWidget):
         tag = self.tagLineEdit.text()
         exists = util.check_exist(tag)
         overwrite = True
-        util.initialise_folders(tag, overwrite)
         if exists and self.o.overwrite == False:
             overwrite = False
+
+        util.initialise_folders(tag, overwrite)
         c = Config(tag)
         self.temp_path = c.path+'/temp'
 
