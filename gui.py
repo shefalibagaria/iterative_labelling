@@ -92,6 +92,7 @@ class Painter(QWidget):
         self.nClassesSpinBox.setMaximum(4)
         self.nClassesSpinBox.setValue(2)
         self.nClassesSpinBox.valueChanged.connect(self.nValueChange)
+        self.nClassesSpinBox.setToolTip('number of classes in your image')
         nClasses = parent.addToolBar('&nClasses')
         nClasses.addWidget(self.nClassesSpinBox)
         self.n_classes = self.nClassesSpinBox.value()
@@ -101,6 +102,7 @@ class Painter(QWidget):
         self.classComboBox.setFocusPolicy(Qt.NoFocus)
         self.classComboBox.addItems([str(i+1) for i in range(self.n_classes)])
         self.classComboBox.activated.connect(self.classChanged)
+        self.classComboBox.setToolTip('select class to label')
         classSelect = parent.addToolBar('&classSelect')
         classSelect.addWidget(self.classComboBox)
 
