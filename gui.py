@@ -216,6 +216,8 @@ class Painter(QWidget):
             if len(self.polypts) == 0:
                 self.polypts.append(self.begin)
             self.polypts.append(self.end)
+            # if self.visualise_win is not None:
+            #     self.visualise_win.cursorPos(event.x(), event.y())
             self.update()
 
     def mouseDoubleClickEvent(self, event):

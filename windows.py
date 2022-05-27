@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication, QWidget, QPushButton, QSpinBox, QComboBox, QLineEdit, QCheckBox, QVBoxLayout, QHBoxLayout
-from PyQt5.QtGui import QPixmap, QIntValidator
+from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QColor, QIntValidator
 from PyQt5.QtCore import Qt, QThread
 
 class Visualiser(QMainWindow):
@@ -45,6 +45,20 @@ class Visualiser(QMainWindow):
         else:
             self.image = QPixmap(self.path+'/prediction.png')
         self.label.setPixmap(self.image)
+
+    def cursorPos(self, x, y):
+        qp = QPainter(self)
+        self.resize(self.image.width(), self.image.height())
+        # self.cursorLabel.resize(self.image.width(), self.image.height())
+        qp.drawPixmap(self.rect(), self.image)
+        br = QBrush(QColor(200,10,10,30))
+        pen = QPen(Qt.yellow, 1)
+
+        pen_colours = [Qt.red, Qt.blue, Qt.green, Qt.magenta]
+        brush_colours = [QColor(200,10,10,30), QColor(10,10,200,30), QColor(10,200,10,30), QColor(200,10,200,30)]
+
+        qp.drawLine(x, 0, x, self.image.height())
+            
 
 class Options(QWidget):
     def __init__(self):

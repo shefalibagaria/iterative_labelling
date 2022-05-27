@@ -411,6 +411,10 @@ def gui_figs(path, output, x, y):
     blended_p = Image.alpha_composite(im_inputs, im_argmax)
     blended_p.save(path+'/predictionblend.png')
 
+    col = np.zeros((output.shape[2], output.shape[3], 3))
+    # col[:,:,0] += 0.7
+    # col[:,:,2] += 1
+    im_softmax = Image.fromarray(np.uint8(np.concatenate((col, alpha), axis=2)*255), mode='RGBA')
     blended_c = Image.alpha_composite(im_inputs, im_softmax)
     blended_c.save(path+'/confidenceblend.png')
     return
