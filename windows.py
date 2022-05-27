@@ -46,18 +46,18 @@ class Visualiser(QMainWindow):
             self.image = QPixmap(self.path+'/prediction.png')
         self.label.setPixmap(self.image)
 
-    def cursorPos(self, x, y):
-        qp = QPainter(self)
-        self.resize(self.image.width(), self.image.height())
-        # self.cursorLabel.resize(self.image.width(), self.image.height())
-        qp.drawPixmap(self.rect(), self.image)
-        br = QBrush(QColor(200,10,10,30))
-        pen = QPen(Qt.yellow, 1)
+    # def cursorPos(self, x, y):
+    #     qp = QPainter(self)
+    #     self.resize(self.image.width(), self.image.height())
+    #     # self.cursorLabel.resize(self.image.width(), self.image.height())
+    #     qp.drawPixmap(self.rect(), self.image)
+    #     br = QBrush(QColor(200,10,10,30))
+    #     pen = QPen(Qt.yellow, 1)
 
-        pen_colours = [Qt.red, Qt.blue, Qt.green, Qt.magenta]
-        brush_colours = [QColor(200,10,10,30), QColor(10,10,200,30), QColor(10,200,10,30), QColor(200,10,200,30)]
+    #     pen_colours = [Qt.red, Qt.blue, Qt.green, Qt.magenta]
+    #     brush_colours = [QColor(200,10,10,30), QColor(10,10,200,30), QColor(10,200,10,30), QColor(200,10,200,30)]
 
-        qp.drawLine(x, 0, x, self.image.height())
+    #     qp.drawLine(x, 0, x, self.image.height())
             
 
 class Options(QWidget):
