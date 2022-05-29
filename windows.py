@@ -37,7 +37,7 @@ class Visualiser(QMainWindow):
             self.image = QPixmap(self.path+'/prediction.png')
         self.label.setPixmap(self.image)
         self.label.resize(self.image.width(), self.image.height())
-        self.setGeometry(30+self.image.width(), 30, self.image.width(), self.image.height()+30)
+        self.setGeometry(30+self.image.width(), 30, self.image.width(), self.image.height())
 
     def displayChanged(self):
         if self.confidenceOverlay.isChecked():

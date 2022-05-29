@@ -4,20 +4,29 @@ import torch.optim as optim
 import numpy as np
 import torch
 import torch.nn as nn
-import tifffile
+import json
 import time
 from PyQt5.QtCore import QObject, pyqtSignal
 
 class TrainWorker(QObject):
-    def __init__(self, c, label_mask, temp_path, Net, max_time, overwrite, offline):
+    def __init__(self, c, label_mask, temp_path, data_path, Net, max_time, overwrite, offline):
         super().__init__()
         self.c = c
         self.label_mask = label_mask
         self.temp_path = temp_path
+        self.data_path = data_path
         self.net = Net
         self.max_time = max_time
         self.overwrite = overwrite
         self.offline = offline
+        self.train_data = {
+            'running loss' : [],
+            'max confidence' : [],
+            'mean confidence': [],
+            'min confidence' : [],
+            'num epochs' : [],
+            'time': []
+        }
         self.quit_flag = False
         print('init trainworker')
         
@@ -44,6 +53,9 @@ class TrainWorker(QObject):
         datapath = c.data_path
         label_mask = self.label_mask
 
+        prev_t = 0
+        prev_e = 0
+
         # Assign torch device
         ngpu = c.ngpu
         tag = c.tag
@@ -69,6 +81,12 @@ class TrainWorker(QObject):
         if not self.overwrite:
             net.load_state_dict(torch.load(f'{path}/Net.pt'))
             net.eval()
+
+            with open(self.data_path+'/train_data.json', 'r') as fp:
+                self.train_data = json.load(fp)
+            prev_t = self.train_data['time'][-1]
+            prev_e = self.train_data['num epochs'][-1]
+
 
         if ('cuda' in str(device)) and (ngpu > 1):
             net = nn.DataParallel(net, list(range(ngpu))).to(device)
@@ -129,9 +147,19 @@ class TrainWorker(QObject):
                         t = end_overall-start_overall
 
                     times.append(t)
-
+                    # update train_data
+                    self.train_data['running loss'].append(float(np.mean(running_loss)))
+                    self.train_data['max confidence'].append(float(np.amax(outputs.detach().cpu().detach().numpy())))
+                    self.train_data['mean confidence'].append(float(np.mean(np.amax(outputs[0].detach().cpu().detach().numpy(), axis=0))))
+                    self.train_data['min confidence'].append(float(np.amin(np.amax(outputs[0].detach().cpu().detach().numpy(), axis=0))))
+                    self.train_data['num epochs'].append(epoch+prev_e)
+                    self.train_data['time'].append(t+prev_t)
+                    
+                
                 self.progress.emit(epoch, np.mean(running_loss))
                 print('epoch: {}, running loss: {}'.format(epoch+1, np.mean(running_loss)))
-
+        save_data(self.data_path, outputs.detach().cpu(), x.detach().cpu(), y.detach().cpu(), (epoch+prev_e))
+        with open(self.data_path+'/train_data.json', 'w', encoding='utf-8') as fp:
+            json.dump(self.train_data, fp, sort_keys=True, indent=4)
         self.finished.emit()           
         print("TRAINING FINISHED")

@@ -76,7 +76,10 @@ def initialise_folders(tag, overwrite):
         try:
             os.mkdir(f'runs/{tag}/temp')
         except:
-            print('didnt make temp')
+            pass
+        try:
+            os.mkdir(f'runs/{tag}/data')
+        except:
             pass
 
 def wandb_init(name, offline):
@@ -418,7 +421,27 @@ def gui_figs(path, output, x, y):
     blended_c = Image.alpha_composite(im_inputs, im_softmax)
     blended_c.save(path+'/confidenceblend.png')
     return
-    
+
+def save_data(path, output, x, y, epoch):
+    output = output.numpy()
+    x = x.numpy()
+    y = y.numpy()
+
+    labels = np.moveaxis(y[0], 0, -1)
+    if labels.shape[-1]<3:
+        labels = np.insert(labels, 1, np.zeros((y.shape[2], y.shape[3])), 2)
+    else:
+        labels[:,:,[1,2]] = labels[:,:,[2,1]]
+
+    im_labels = Image.fromarray(np.uint8(labels*255), mode='RGB')
+    im_labels.save(path+f'/labels_{epoch}.png')
+
+    argmax = np.argmax(output, axis=1)[0]
+    predict = np.zeros((output.shape[2], output.shape[3]))
+    predict[argmax==0]=1
+    im_output = Image.fromarray(np.uint8(predict*255), mode = 'L')
+    im_output.save(path+f'/output_{epoch}.png')
+
 
 class NMCDataset(data.Dataset):
     def __init__(self, inputs: list, targets: list, transform=None):

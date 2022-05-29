@@ -163,6 +163,8 @@ class Painter(QWidget):
 
         self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))
 
+        
+
     def browseImage(self):
         fname = QFileDialog.getOpenFileName(self, 'Open File', 'c\\', 'Image files ( *.png *.jpg *.jpeg)')
         self.datapath = fname[0]
@@ -279,8 +281,10 @@ class Painter(QWidget):
             overwrite = False
 
         util.initialise_folders(tag, overwrite)
+        
         c = Config(tag)
         self.temp_path = c.path+'/temp'
+        self.data_path = c.path+'/data'
 
         # Update config based on options
         c.data_path = self.datapath
@@ -297,7 +301,7 @@ class Painter(QWidget):
         # 2: Create QThread object
         self.thread = QThread()
         # 3: Create worker object
-        self.worker = TrainWorker(c, self.labels, self.temp_path, net, max_time, overwrite, offline)
+        self.worker = TrainWorker(c, self.labels, self.temp_path, self.data_path, net, max_time, overwrite, offline)
         # 4: Move worker to thread
         self.worker.moveToThread(self.thread)
         # 5: Connect Signals and Slots
