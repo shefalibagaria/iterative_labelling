@@ -9,6 +9,8 @@ import src.util as util
 from src.networks import make_nets
 from windows import Visualiser, Options
 import numpy as np
+import time
+import json
 from matplotlib import pyplot as plt
 from matplotlib.path import Path
 
@@ -69,8 +71,13 @@ class Painter(QWidget):
         self.prev_polys = []
         self.begin = None
         self.end = None
+        self.label_time = 0
+        self.drawing = False
+        self.t1 = 0
+        self.t2 = 0
 
-        self.training = False
+        self.training = 0
+        self.training_iter = 0
 
         # Current Options
         self.epochs = 5000
@@ -161,7 +168,13 @@ class Painter(QWidget):
         options.addWidget(self.optionsButton)
         options.addWidget(self.visualiseButton)
 
-        self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))   
+        self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))
+
+        self.labelling_data = {
+            'times' : [],
+            'training iter' : []
+        }
+        
 
     def browseImage(self):
         fname = QFileDialog.getOpenFileName(self, 'Open File', 'c\\', 'Image files ( *.png *.jpg *.jpeg)')
@@ -210,6 +223,9 @@ class Painter(QWidget):
                 pass
 
     def mousePressEvent(self, event):
+        if not self.drawing:
+            self.t1 = time.time()
+        self.drawing = True
         self.begin = event.pos()
         self.end = event.pos()
         self.cursorLabel.setCursor(QCursor(Qt.PointingHandCursor))
@@ -217,13 +233,13 @@ class Painter(QWidget):
             if len(self.polypts) == 0:
                 self.polypts.append(self.begin)
             self.polypts.append(self.end)
-            # if self.visualise_win is not None:
-            #     self.visualise_win.cursorPos(event.x(), event.y())
             self.update()
 
     def mouseDoubleClickEvent(self, event):
         # ends current shape
         self.cursorLabel.setCursor(QCursor(Qt.ArrowCursor))
+        self.t2 = time.time()
+        self.label_time += self.t2-self.t1
         if self.shape == 'poly':
             if len(self.polypts) == 0:
                 self.polypts.append(self.begin)
@@ -234,7 +250,8 @@ class Painter(QWidget):
             self.prev_polys.append(self.polypts)
             self.prevClasses.append(self.currentClass)
             self.polypts = []
-            self.update()       
+            self.update()
+        self.drawing = False       
 
     def onUndo(self):
         try:
@@ -272,6 +289,7 @@ class Painter(QWidget):
         self.training = True
         self.trainButton.hide()
         self.stopTrain.show()
+        self.training_iter += 1
 
         tag = self.tagLineEdit.text()
         exists = util.check_exist(tag)
@@ -280,10 +298,16 @@ class Painter(QWidget):
             overwrite = False
 
         util.initialise_folders(tag, overwrite)
-        
+
         c = Config(tag)
         self.temp_path = c.path+'/temp'
         self.data_path = c.path+'/data'
+        if overwrite:
+            with open(self.data_path+'/label_data.json', 'w', encoding='utf-8') as fp:
+                json.dump(self.labelling_data, fp, sort_keys=True, indent=4)
+        else:
+            with open(self.data_path+'/label_data.json', 'r') as fp:
+                self.labelling_data = json.load(fp)
 
         # Update config based on options
         c.data_path = self.datapath
@@ -321,6 +345,10 @@ class Painter(QWidget):
         self.training = False
         self.stopTrain.hide()
         self.trainButton.show()
+        self.labelling_data['times'].append(self.label_time)
+        self.labelling_data['training iter'].append(self.training_iter)
+        with open(self.data_path+'/label_data.json', 'w', encoding='utf-8') as fp:
+            json.dump(self.labelling_data, fp, sort_keys=True, indent=4)
 
     def progress(self, epoch, running_loss):
         # self.stepLabel.setText(f'epoch: {epoch}, running loss: {running_loss:.4f}')
