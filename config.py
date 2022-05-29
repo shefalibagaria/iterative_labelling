@@ -38,6 +38,11 @@ class Config():
         self.p = [1]*self.lays
         self.f = [self.n_channels, 16, 16, 16, self.n_phases]
 
+    def update_device(self):
+        if self.ngpu > 0:
+            self.device_name = "cuda:0"
+        else:
+            self.device_name = 'cpu'
 
     def save(self):
         j = {}

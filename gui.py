@@ -161,9 +161,7 @@ class Painter(QWidget):
         options.addWidget(self.optionsButton)
         options.addWidget(self.visualiseButton)
 
-        self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))
-
-        
+        self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))   
 
     def browseImage(self):
         fname = QFileDialog.getOpenFileName(self, 'Open File', 'c\\', 'Image files ( *.png *.jpg *.jpeg)')
@@ -172,6 +170,7 @@ class Painter(QWidget):
         self.resize(self.image.width(), self.image.height())
         self.parent.resize(self.image.width(), self.image.height())
         self.cursorLabel.resize(self.image.width(), self.image.height())
+        self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))
         self.update()
 
 
@@ -292,6 +291,7 @@ class Painter(QWidget):
         c.f[-1] = c.n_phases
         c.num_epochs = self.o.epochs
         c.ngpu = self.o.n_gpu
+        c.update_device()
         offline = self.o.offline
         max_time = self.o.max_time
         
