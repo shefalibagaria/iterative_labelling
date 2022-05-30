@@ -64,8 +64,8 @@ class Options(QWidget):
     def __init__(self):
         super().__init__()
         self.options_set = False
-        self.epochs = 5000
-        self.max_time = 120
+        self.epochs = 8000
+        self.max_time = 300
         self.n_gpu = 0
         self.offline = True
         self.overwrite = False

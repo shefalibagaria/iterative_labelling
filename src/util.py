@@ -410,7 +410,7 @@ def gui_figs(path, output, x, y):
     blended_cp = Image.alpha_composite(im_argmax, im_softmax)
     blended_cp.save(path+'/confidenceprediction.png')
 
-    im_argmax.putalpha(110)
+    im_argmax.putalpha(100)
     blended_p = Image.alpha_composite(im_inputs, im_argmax)
     blended_p.save(path+'/predictionblend.png')
 
