@@ -55,7 +55,7 @@ class Painter(QWidget):
     def __init__(self, parent):
         super(Painter, self).__init__(parent)
         self.parent = parent
-        self.datapath = 'data/nmc_cathode.png'
+        self.datapath = 'data/nmc_cathode_512.png'
         self.temp_path = ''
         self.image = QPixmap(self.datapath)
         self.cursorLabel = QLabel(self)
@@ -80,8 +80,8 @@ class Painter(QWidget):
         self.training_iter = 0
 
         # Current Options
-        self.epochs = 5000
-        self.max_time = 120
+        self.epochs = 8000
+        self.max_time = 300
         self.n_gpu = 0
         self.overwriteCheck = False
 

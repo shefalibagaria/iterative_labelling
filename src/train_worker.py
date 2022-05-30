@@ -124,7 +124,7 @@ class TrainWorker(QObject):
                 optimizer.step()
                 running_loss.append(loss.item())
 
-            if epoch % 10 == 0:
+            if epoch % 50 == 0:
                 with torch.no_grad():
                     torch.save(net.state_dict(), f'{path}/Net.pt')
 
@@ -158,7 +158,6 @@ class TrainWorker(QObject):
                     self.train_data['time'].append(t+prev_t)
                     self.train_data['percent labelled'].append(float(np.sum(y[0].detach().cpu().detach().numpy())/(512*512)))
                     self.train_data['percent active'].append(float(np.sum(y[0][0].detach().cpu().detach().numpy())/np.sum(y[0].detach().cpu().detach().numpy())))
-                    
                 
                 self.progress.emit(epoch, np.mean(running_loss))
                 print('epoch: {}, running loss: {}'.format(epoch+1, np.mean(running_loss)))
