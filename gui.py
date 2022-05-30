@@ -255,6 +255,16 @@ class Painter(QWidget):
 
     def onUndo(self):
         try:
+            poly = self.prev_polys[-1]
+            new_poly = [[point.x(), point.y()] for point in poly]
+            w = self.image.width()
+            h = self.image.height()
+            x, y = np.meshgrid(np.arange(w), np.arange(h))
+            x, y = x.flatten(), y.flatten()
+            grid = np.vstack((x,y)).T
+            p = Path(new_poly)
+            contained_pts = p.contains_points(grid)
+            self.labels[self.prevClasses[-1]-1] -= contained_pts.reshape(h, w)
             self.old_polys[self.prevClasses[-1]].remove(self.prev_polys[-1])
             self.prevClasses.pop()
             self.prev_polys.pop()
