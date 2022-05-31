@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('Labelling')
         self.painterWidget = Painter(self)
         self.setCentralWidget(self.painterWidget)
-        self.setGeometry(30,30,self.painterWidget.image.width(),self.painterWidget.image.height())
+        self.setGeometry(30,30,self.painterWidget.image.width(),self.painterWidget.image.height()+30)
 
         #save map
         # mainMenu = self.menuBar()
@@ -181,7 +181,7 @@ class Painter(QWidget):
         self.datapath = fname[0]
         self.image = QPixmap(self.datapath)
         self.resize(self.image.width(), self.image.height())
-        self.parent.resize(self.image.width(), self.image.height())
+        self.parent.resize(self.image.width(), self.image.height()+30)
         self.cursorLabel.resize(self.image.width(), self.image.height())
         self.labels = np.zeros((self.n_classes,self.image.height(),self.image.width()))
         self.update()
@@ -235,7 +235,7 @@ class Painter(QWidget):
             self.polypts.append(self.end)
             self.update()
 
-    def mouseDoubleClickEvent(self, event):
+    def mouseReleaseEvent(self, event):
         # ends current shape
         self.cursorLabel.setCursor(QCursor(Qt.ArrowCursor))
         self.t2 = time.time()
