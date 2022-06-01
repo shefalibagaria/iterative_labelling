@@ -10,18 +10,19 @@ def distort(img):
     :img: a single image (np.ndarray)
     """
     img = img.astype(np.float32)
-    img +=0.5
+    img +=1.5
     img *= 1/np.amax(img)
-    img -= 0.1
+    # img -= 0.1
 
     distorted = filters.gaussian(img, sigma=2)
-    distorted = random_noise(distorted, mode='speckle', var=0.5, mean=0.75, seed=3)
+    distorted = random_noise(distorted, mode='localvar', seed=3)
+    # distorted = filters.gaussian(distorted, sigma=0.5)
     return distorted
 
 def crop_save(img, size, path):
     'crops and saves images'
     new_img = img[:size, :size]
-    plt.imsave(path, new_img, cmap='gray')
+    plt.imsave(path, new_img, cmap='gray', vmin=0, vmax=1)
 
 img = plt.imread('data/nmc_segmented.png')
 distorted = distort(img)
