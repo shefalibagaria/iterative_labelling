@@ -3,6 +3,7 @@ from skimage import io, filters
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+import taufactor as tau
 
 def distort(img):
     """
