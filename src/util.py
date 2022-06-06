@@ -417,7 +417,7 @@ def gui_figs(path, output, x, y):
     col = np.zeros((output.shape[2], output.shape[3], 3))
     # col[:,:,0] += 0.7
     # col[:,:,2] += 1
-    im_softmax = Image.fromarray(np.uint8(np.concatenate((col, alpha), axis=2)*255), mode='RGBA')
+    # im_softmax = Image.fromarray(np.uint8(np.concatenate((col, alpha), axis=2)*255), mode='RGBA')
     blended_c = Image.alpha_composite(im_inputs, im_softmax)
     blended_c.save(path+'/confidenceblend.png')
     return
@@ -426,6 +426,7 @@ def save_data(path, output, x, y, epoch):
     output = output.numpy()
     x = x.numpy()
     y = y.numpy()
+    n_classes = output.shape[1]
 
     labels = np.moveaxis(y[0], 0, -1)
     if labels.shape[-1]<3:
@@ -441,6 +442,35 @@ def save_data(path, output, x, y, epoch):
     predict[argmax==0]=1
     im_output = Image.fromarray(np.uint8(predict*255), mode = 'L')
     im_output.save(path+f'/output_{epoch}.png')
+
+    softmax = np.amax(output, axis=1)[0]
+    softmax = (softmax-(1/n_classes))*(n_classes/(n_classes-1))
+    # print(f'n classes: {n_classes}, softmax max: {np.amax(softmax)}, softmax min: {np.amin(softmax)}')
+    alpha = 0.8*(1-softmax)
+    alpha = np.expand_dims(alpha, axis=2)
+    black = np.zeros((output.shape[2], output.shape[3], 3))
+    im_softmax = Image.fromarray(np.uint8(np.concatenate((black, alpha), axis=2)*255), mode='RGBA')
+    white = Image.fromarray(np.uint8(np.ones((output.shape[2], output.shape[3], 4))*255), mode='RGBA')
+    Image.alpha_composite(white, im_softmax)
+    im_softmax.save(path+f'/confidence_{epoch}.png')
+
+    inputs = x[0][0]
+    im_inputs = Image.fromarray(np.uint8(inputs*255), mode='L')
+    im_inputs = im_inputs.convert('RGBA')
+
+    argmax = np.argmax(output, axis=1)[0]
+    argmax_norm = 1/18+(argmax/9)
+    im_argmax = Image.fromarray(np.uint8(cm.Set1(argmax_norm)*255), mode='RGBA')
+    im_argmax.save(path+f'/prediction_{epoch}.png')
+
+    blended_cp = Image.alpha_composite(im_argmax, im_softmax)
+    blended_cp.save(path+f'/confidenceprediction_{epoch}.png')
+
+    im_argmax.putalpha(100)
+    blended_p = Image.alpha_composite(im_inputs, im_argmax)
+    blended_p.save(path+'/predictionblend.png')
+
+
 
 
 class NMCDataset(data.Dataset):
