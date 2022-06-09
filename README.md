@@ -8,21 +8,21 @@ A segmentation tool that allows you to iteratively draw labels on an image and t
 iterative_labelling
  ┣ src
  ┃ ┣ __init__.py
- ┃ ┣ networks.py
- ┃ ┣ postprocessing.py
- ┃ ┣ preprocessing.py
+ ┃ ┣ networks.py - build network using confid settings
+ ┃ ┣ postprocessing.py (not used in project)
+ ┃ ┣ preprocessing.py (not used in project)
  ┃ ┣ test.py
  ┃ ┣ train.py
- ┃ ┣ train_worker.py
- ┃ ┗ util.py
+ ┃ ┣ train_worker.py - worker for training network in a seprate thread
+ ┃ ┗ util.py - data proceesing functions
  ┣ data
  ┃ ┗ example.png
  ┃ ┗ nmc_cathode.png
  ┣ .gitignore
- ┣ config.py
+ ┣ config.py - network configuration
  ┣ main.py
- ┣ gui.py
- ┣ windows.py
+ ┣ gui.py - start GUI to label image & train network
+ ┣ windows.py - Visualise and options windows
  ┣ README.md
  ┗ requirements.txt
 ```
