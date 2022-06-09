@@ -20,7 +20,6 @@ iterative_labelling
  ┣ runs - folder contains data from user tests and synthetic data test
  ┣ .gitignore
  ┣ config.py - network configuration
- ┣ main.py
  ┣ gui.py - start GUI to label image & train network
  ┣ windows.py - Visualise and options windows
  ┣ analyse_results.ipynb - notebook where results from user tests and network validation were analysed
