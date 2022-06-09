@@ -302,20 +302,6 @@ def one_hot_encode(mask, n_classes=3):
     one_hot = one_hot[1:]   # remove '0' (unlabelled) layer
     return one_hot
 
-# def preprocess(data_path):
-#     """
-#     :data_path: path to data in tif format (string)
-#     """
-#     imgs = io.imread(data_path)
-#     inputs = []
-#     targets = []
-#     for img in imgs:
-#         inputs.append(distort(img))
-#         cropped = crop_labels(img)
-#         targets.append(one_hot_encode(cropped))
-#     dataset = NMCDataset(inputs=inputs, targets=targets, transform=None)
-#     return dataset
-
 def preprocess(data_path, labels):
     # function returns dataset to be trained
     inputs = []
